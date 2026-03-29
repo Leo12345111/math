@@ -90,6 +90,10 @@ local attachmentPool = {}
 local beamPool = {}
 local activePoints = 0
 
+local lastCalcPos = Vector3.zero
+local lastCalcDir = Vector3.zero
+local lastTrans = -1
+
 local function enforceNumberInput(box)
 	box:GetPropertyChangedSignal("Text"):Connect(function()
 		local text = box.Text
@@ -139,6 +143,7 @@ local function clearArch()
 		beamPool[i].Enabled = false
 	end
 	hitBall.Position = Vector3.new(0, -10000, 0)
+	lastCalcPos = Vector3.zero
 end
 
 local function getPoint(pos)
@@ -177,8 +182,6 @@ local function connectBeams(points, trans)
 end
 
 local function drawArch()
-	activePoints = 0
-
 	if not isTrajectoryActive then
 		clearArch()
 		return
@@ -191,9 +194,19 @@ local function drawArch()
 
 	local startPosVec = rootPart.Position
 	local direction = camera.CFrame.LookVector
+	local archTrans = tonumber(transInput.Text) or 0.5
+
+	if startPosVec == lastCalcPos and direction == lastCalcDir and archTrans == lastTrans then
+		return
+	end
+
+	lastCalcPos = startPosVec
+	lastCalcDir = direction
+	lastTrans = archTrans
+
+	activePoints = 0
 
 	local velocityMag = 40
-	local archTrans = tonumber(transInput.Text) or 0.5
 	local simGravity = 10
 	local airDrag = 0
 	local velocityObj = direction * velocityMag
@@ -201,7 +214,7 @@ local function drawArch()
 	local vy45 = velocityMag * math.sin(math.rad(45))
 	local maxAt45 = (vy45 * vy45) / (2 * simGravity)
 
-	local timeStep = 0.02
+	local timeStep = 0.05
 	local maxTime = 100
 	local currentPos = startPosVec
 	local currentVel = velocityObj
@@ -211,6 +224,10 @@ local function drawArch()
 	local points = {}
 	table.insert(points, getPoint(currentPos))
 
+	local raycastParams = RaycastParams.new()
+	raycastParams.FilterDescendantsInstances = {character, archBase}
+	raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+
 	for t = 0, maxTime, timeStep do
 		local heightDiff = currentPos.Y - startY
 		if heightDiff > currentMaxHeight then
@@ -218,11 +235,6 @@ local function drawArch()
 		end
 
 		local nextPos = currentPos + (currentVel * timeStep)
-
-		local raycastParams = RaycastParams.new()
-		raycastParams.FilterDescendantsInstances = {character, archBase}
-		raycastParams.FilterType = Enum.RaycastFilterType.Exclude
-
 		local raycastResult = workspace:Raycast(currentPos, nextPos - currentPos, raycastParams)
 
 		if raycastResult then
@@ -237,7 +249,6 @@ local function drawArch()
 	end
 
 	connectBeams(points, archTrans)
-
 	heightLabel.Text = string.format("Current Peak: %.1f studs\n45° Vacuum Peak: %.1f studs", currentMaxHeight, maxAt45)
 end
 
