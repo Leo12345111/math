@@ -264,7 +264,7 @@ end)
 inputConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if gameProcessed then return end
 
-	if input.KeyCode == Enum.KeyCode.J then
+	if input.KeyCode == Enum.KeyCode.U then
 		frame.Visible = not frame.Visible
 	elseif input.KeyCode == Enum.KeyCode.Q then
 		isTrajectoryActive = not isTrajectoryActive
