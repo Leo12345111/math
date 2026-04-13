@@ -60,6 +60,8 @@ local velInput = Instance.new("TextBox")
 velInput.Size = UDim2.new(0.9, 0, 0, 30)
 velInput.Position = UDim2.new(0.05, 0, 0, 115)
 velInput.Text = "40"
+velInput.TextEditable = false
+velInput.ClearTextOnFocus = false
 velInput.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 velInput.TextColor3 = Color3.new(1, 1, 1)
 velInput.Parent = frame
@@ -76,7 +78,9 @@ gravLabel.Parent = frame
 local gravInput = Instance.new("TextBox")
 gravInput.Size = UDim2.new(0.9, 0, 0, 30)
 gravInput.Position = UDim2.new(0.05, 0, 0, 175)
-gravInput.Text = "10"
+gravInput.Text = "10.75"
+gravInput.TextEditable = false
+gravInput.ClearTextOnFocus = false
 gravInput.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 gravInput.TextColor3 = Color3.new(1, 1, 1)
 gravInput.Parent = frame
@@ -93,7 +97,9 @@ dragLabel.Parent = frame
 local dragInput = Instance.new("TextBox")
 dragInput.Size = UDim2.new(0.9, 0, 0, 30)
 dragInput.Position = UDim2.new(0.05, 0, 0, 235)
-dragInput.Text = "0"
+dragInput.Text = "0.05"
+dragInput.TextEditable = false
+dragInput.ClearTextOnFocus = false
 dragInput.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 dragInput.TextColor3 = Color3.new(1, 1, 1)
 dragInput.Parent = frame
@@ -159,9 +165,6 @@ local function enforceNumberInput(box)
 end
 
 enforceNumberInput(transInput)
-enforceNumberInput(velInput)
-enforceNumberInput(gravInput)
-enforceNumberInput(dragInput)
 
 frame.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -255,8 +258,8 @@ local function drawArch()
 	
 	local archTrans = tonumber(transInput.Text) or 0.5
 	local velocityMag = tonumber(velInput.Text) or 40
-	local simGravity = tonumber(gravInput.Text) or 10
-	local airDrag = tonumber(dragInput.Text) or 0
+	local simGravity = tonumber(gravInput.Text) or 10.75
+	local airDrag = tonumber(dragInput.Text) or 0.05
 
 	if startPosVec == lastCalcPos and direction == lastCalcDir and archTrans == lastTrans and velocityMag == lastVel and simGravity == lastGrav and airDrag == lastDrag then
 		return
@@ -298,7 +301,6 @@ local function drawArch()
 	local firstWallHitPos = nil
 	local hitHumanoidPos = nil
 	
-	-- PERFORMANCE CAP: Stop calculations if we pierce too many objects
 	local MAX_PIERCES = 15 
 	local pierceCount = 0
 
@@ -323,7 +325,6 @@ local function drawArch()
 		local currentRemainingDir = stepDir
 		local stepPierces = 0
 
-		-- Safely loop to pierce thin walls within a single time step
 		while currentRemainingDir.Magnitude > 0.001 and stepPierces < 3 and pierceCount < MAX_PIERCES do
 			local raycastResult = workspace:Raycast(currentOrigin, currentRemainingDir, raycastParams)
 
@@ -368,7 +369,6 @@ local function drawArch()
 		currentPos = nextPos
 		totalDist = totalDist + stepDist
 
-		-- Stop if we hit the distance limit OR if we've hit too many walls
 		if totalDist >= maxDistance or pierceCount >= MAX_PIERCES then
 			break
 		end
