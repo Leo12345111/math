@@ -12,7 +12,7 @@ gui.ResetOnSpawn = false
 gui.Parent = playerGui
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 260, 0, 330)
+frame.Size = UDim2.new(0, 260, 0, 150)
 frame.AnchorPoint = Vector2.new(0.5, 0.5)
 frame.Position = UDim2.new(0.5, 0, 0.5, 0)
 frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
@@ -47,66 +47,9 @@ transInput.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 transInput.TextColor3 = Color3.new(1, 1, 1)
 transInput.Parent = frame
 
-local velLabel = Instance.new("TextLabel")
-velLabel.Size = UDim2.new(0.9, 0, 0, 20)
-velLabel.Position = UDim2.new(0.05, 0, 0, 95)
-velLabel.Text = "Velocity Magnitude:"
-velLabel.TextColor3 = Color3.new(1, 1, 1)
-velLabel.BackgroundTransparency = 1
-velLabel.TextXAlignment = Enum.TextXAlignment.Left
-velLabel.Parent = frame
-
-local velInput = Instance.new("TextBox")
-velInput.Size = UDim2.new(0.9, 0, 0, 30)
-velInput.Position = UDim2.new(0.05, 0, 0, 115)
-velInput.Text = "40"
-velInput.TextEditable = false
-velInput.ClearTextOnFocus = false
-velInput.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-velInput.TextColor3 = Color3.new(1, 1, 1)
-velInput.Parent = frame
-
-local gravLabel = Instance.new("TextLabel")
-gravLabel.Size = UDim2.new(0.9, 0, 0, 20)
-gravLabel.Position = UDim2.new(0.05, 0, 0, 155)
-gravLabel.Text = "Gravity:"
-gravLabel.TextColor3 = Color3.new(1, 1, 1)
-gravLabel.BackgroundTransparency = 1
-gravLabel.TextXAlignment = Enum.TextXAlignment.Left
-gravLabel.Parent = frame
-
-local gravInput = Instance.new("TextBox")
-gravInput.Size = UDim2.new(0.9, 0, 0, 30)
-gravInput.Position = UDim2.new(0.05, 0, 0, 175)
-gravInput.Text = "10.75"
-gravInput.TextEditable = false
-gravInput.ClearTextOnFocus = false
-gravInput.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-gravInput.TextColor3 = Color3.new(1, 1, 1)
-gravInput.Parent = frame
-
-local dragLabel = Instance.new("TextLabel")
-dragLabel.Size = UDim2.new(0.9, 0, 0, 20)
-dragLabel.Position = UDim2.new(0.05, 0, 0, 215)
-dragLabel.Text = "Air Drag:"
-dragLabel.TextColor3 = Color3.new(1, 1, 1)
-dragLabel.BackgroundTransparency = 1
-dragLabel.TextXAlignment = Enum.TextXAlignment.Left
-dragLabel.Parent = frame
-
-local dragInput = Instance.new("TextBox")
-dragInput.Size = UDim2.new(0.9, 0, 0, 30)
-dragInput.Position = UDim2.new(0.05, 0, 0, 235)
-dragInput.Text = "0.05"
-dragInput.TextEditable = false
-dragInput.ClearTextOnFocus = false
-dragInput.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-dragInput.TextColor3 = Color3.new(1, 1, 1)
-dragInput.Parent = frame
-
 local heightLabel = Instance.new("TextLabel")
 heightLabel.Size = UDim2.new(0.9, 0, 0, 40)
-heightLabel.Position = UDim2.new(0.05, 0, 0, 275)
+heightLabel.Position = UDim2.new(0.05, 0, 0, 95)
 heightLabel.Text = "Current Peak: 0\n45° Vacuum Peak: 0"
 heightLabel.TextColor3 = Color3.new(1, 1, 1)
 heightLabel.BackgroundTransparency = 1
@@ -150,9 +93,6 @@ local activePoints = 0
 local lastCalcPos = Vector3.zero
 local lastCalcDir = Vector3.zero
 local lastTrans = -1
-local lastVel = -1
-local lastGrav = -1
-local lastDrag = -1
 
 local function enforceNumberInput(box)
 	box:GetPropertyChangedSignal("Text"):Connect(function()
@@ -257,20 +197,17 @@ local function drawArch()
 	local direction = camera.CFrame.LookVector
 	
 	local archTrans = tonumber(transInput.Text) or 0.5
-	local velocityMag = tonumber(velInput.Text) or 40
-	local simGravity = tonumber(gravInput.Text) or 10.75
-	local airDrag = tonumber(dragInput.Text) or 0.05
+	local velocityMag = 40
+	local simGravity = 10.75
+	local airDrag = 0.05
 
-	if startPosVec == lastCalcPos and direction == lastCalcDir and archTrans == lastTrans and velocityMag == lastVel and simGravity == lastGrav and airDrag == lastDrag then
+	if startPosVec == lastCalcPos and direction == lastCalcDir and archTrans == lastTrans then
 		return
 	end
 
 	lastCalcPos = startPosVec
 	lastCalcDir = direction
 	lastTrans = archTrans
-	lastVel = velocityMag
-	lastGrav = simGravity
-	lastDrag = airDrag
 
 	activePoints = 0
 
