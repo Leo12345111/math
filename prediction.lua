@@ -296,7 +296,11 @@ local function drawArch()
 	local maxDistance = 900
 	local totalDist = 0
 	local firstWallHitPos = nil
-	local hitHumanoid = false
+	local hitHumanoidPos = nil
+	
+	-- PERFORMANCE CAP: Stop calculations if we pierce too many objects
+	local MAX_PIERCES = 15 
+	local pierceCount = 0
 
 	for t = 0, maxTime, timeStep do
 		local heightDiff = currentPos.Y - startY
@@ -317,8 +321,10 @@ local function drawArch()
 
 		local currentOrigin = currentPos
 		local currentRemainingDir = stepDir
+		local stepPierces = 0
 
-		while currentRemainingDir.Magnitude > 0.001 do
+		-- Safely loop to pierce thin walls within a single time step
+		while currentRemainingDir.Magnitude > 0.001 and stepPierces < 3 and pierceCount < MAX_PIERCES do
 			local raycastResult = workspace:Raycast(currentOrigin, currentRemainingDir, raycastParams)
 
 			if raycastResult then
@@ -332,23 +338,29 @@ local function drawArch()
 				end
 
 				if isHumanoid then
-					hitHumanoid = true
-					hitBall.Position = raycastResult.Position
+					hitHumanoidPos = raycastResult.Position
 					table.insert(points, getPoint(raycastResult.Position))
 					break
 				else
 					if not firstWallHitPos then
 						firstWallHitPos = raycastResult.Position
 					end
+					
 					table.insert(excludeList, hitPart)
 					raycastParams.FilterDescendantsInstances = excludeList
+					
+					pierceCount = pierceCount + 1
+					stepPierces = stepPierces + 1
+					
+					currentOrigin = raycastResult.Position
+					currentRemainingDir = nextPos - currentOrigin
 				end
 			else
 				break
 			end
 		end
 
-		if hitHumanoid then
+		if hitHumanoidPos then
 			break
 		end
 
@@ -356,7 +368,8 @@ local function drawArch()
 		currentPos = nextPos
 		totalDist = totalDist + stepDist
 
-		if totalDist >= maxDistance then
+		-- Stop if we hit the distance limit OR if we've hit too many walls
+		if totalDist >= maxDistance or pierceCount >= MAX_PIERCES then
 			break
 		end
 
@@ -366,16 +379,15 @@ local function drawArch()
 	connectBeams(points, archTrans)
 	heightLabel.Text = string.format("Current Peak: %.1f studs\n45° Vacuum Peak: %.1f studs", currentMaxHeight, maxAt45)
 
-	if hitHumanoid then
+	if hitHumanoidPos then
+		hitBall.Position = hitHumanoidPos
+		hitBall.Transparency = 0
+	elseif firstWallHitPos then
+		hitBall.Position = firstWallHitPos
 		hitBall.Transparency = 0
 	else
-		if firstWallHitPos then
-			hitBall.Position = firstWallHitPos
-			hitBall.Transparency = 0
-		else
-			hitBall.Position = Vector3.new(0, -10000, 0)
-			hitBall.Transparency = 1
-		end
+		hitBall.Position = Vector3.new(0, -10000, 0)
+		hitBall.Transparency = 1
 	end
 end
 
