@@ -12,7 +12,7 @@ gui.ResetOnSpawn = false
 gui.Parent = playerGui
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 260, 0, 150)
+frame.Size = UDim2.new(0, 260, 0, 330)
 frame.AnchorPoint = Vector2.new(0.5, 0.5)
 frame.Position = UDim2.new(0.5, 0, 0.5, 0)
 frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
@@ -47,9 +47,60 @@ transInput.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 transInput.TextColor3 = Color3.new(1, 1, 1)
 transInput.Parent = frame
 
+local velLabel = Instance.new("TextLabel")
+velLabel.Size = UDim2.new(0.9, 0, 0, 20)
+velLabel.Position = UDim2.new(0.05, 0, 0, 95)
+velLabel.Text = "Velocity Magnitude:"
+velLabel.TextColor3 = Color3.new(1, 1, 1)
+velLabel.BackgroundTransparency = 1
+velLabel.TextXAlignment = Enum.TextXAlignment.Left
+velLabel.Parent = frame
+
+local velInput = Instance.new("TextBox")
+velInput.Size = UDim2.new(0.9, 0, 0, 30)
+velInput.Position = UDim2.new(0.05, 0, 0, 115)
+velInput.Text = "40"
+velInput.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+velInput.TextColor3 = Color3.new(1, 1, 1)
+velInput.Parent = frame
+
+local gravLabel = Instance.new("TextLabel")
+gravLabel.Size = UDim2.new(0.9, 0, 0, 20)
+gravLabel.Position = UDim2.new(0.05, 0, 0, 155)
+gravLabel.Text = "Gravity:"
+gravLabel.TextColor3 = Color3.new(1, 1, 1)
+gravLabel.BackgroundTransparency = 1
+gravLabel.TextXAlignment = Enum.TextXAlignment.Left
+gravLabel.Parent = frame
+
+local gravInput = Instance.new("TextBox")
+gravInput.Size = UDim2.new(0.9, 0, 0, 30)
+gravInput.Position = UDim2.new(0.05, 0, 0, 175)
+gravInput.Text = "10"
+gravInput.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+gravInput.TextColor3 = Color3.new(1, 1, 1)
+gravInput.Parent = frame
+
+local dragLabel = Instance.new("TextLabel")
+dragLabel.Size = UDim2.new(0.9, 0, 0, 20)
+dragLabel.Position = UDim2.new(0.05, 0, 0, 215)
+dragLabel.Text = "Air Drag:"
+dragLabel.TextColor3 = Color3.new(1, 1, 1)
+dragLabel.BackgroundTransparency = 1
+dragLabel.TextXAlignment = Enum.TextXAlignment.Left
+dragLabel.Parent = frame
+
+local dragInput = Instance.new("TextBox")
+dragInput.Size = UDim2.new(0.9, 0, 0, 30)
+dragInput.Position = UDim2.new(0.05, 0, 0, 235)
+dragInput.Text = "0"
+dragInput.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+dragInput.TextColor3 = Color3.new(1, 1, 1)
+dragInput.Parent = frame
+
 local heightLabel = Instance.new("TextLabel")
 heightLabel.Size = UDim2.new(0.9, 0, 0, 40)
-heightLabel.Position = UDim2.new(0.05, 0, 0, 95)
+heightLabel.Position = UDim2.new(0.05, 0, 0, 275)
 heightLabel.Text = "Current Peak: 0\n45° Vacuum Peak: 0"
 heightLabel.TextColor3 = Color3.new(1, 1, 1)
 heightLabel.BackgroundTransparency = 1
@@ -93,6 +144,9 @@ local activePoints = 0
 local lastCalcPos = Vector3.zero
 local lastCalcDir = Vector3.zero
 local lastTrans = -1
+local lastVel = -1
+local lastGrav = -1
+local lastDrag = -1
 
 local function enforceNumberInput(box)
 	box:GetPropertyChangedSignal("Text"):Connect(function()
@@ -105,6 +159,9 @@ local function enforceNumberInput(box)
 end
 
 enforceNumberInput(transInput)
+enforceNumberInput(velInput)
+enforceNumberInput(gravInput)
+enforceNumberInput(dragInput)
 
 frame.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -143,6 +200,7 @@ local function clearArch()
 		beamPool[i].Enabled = false
 	end
 	hitBall.Position = Vector3.new(0, -10000, 0)
+	hitBall.Transparency = 1
 	lastCalcPos = Vector3.zero
 end
 
@@ -194,25 +252,31 @@ local function drawArch()
 
 	local startPosVec = rootPart.Position
 	local direction = camera.CFrame.LookVector
+	
 	local archTrans = tonumber(transInput.Text) or 0.5
+	local velocityMag = tonumber(velInput.Text) or 40
+	local simGravity = tonumber(gravInput.Text) or 10
+	local airDrag = tonumber(dragInput.Text) or 0
 
-	if startPosVec == lastCalcPos and direction == lastCalcDir and archTrans == lastTrans then
+	if startPosVec == lastCalcPos and direction == lastCalcDir and archTrans == lastTrans and velocityMag == lastVel and simGravity == lastGrav and airDrag == lastDrag then
 		return
 	end
 
 	lastCalcPos = startPosVec
 	lastCalcDir = direction
 	lastTrans = archTrans
+	lastVel = velocityMag
+	lastGrav = simGravity
+	lastDrag = airDrag
 
 	activePoints = 0
 
-	local velocityMag = 40
-	local simGravity = 10
-	local airDrag = 0
 	local velocityObj = direction * velocityMag
-
 	local vy45 = velocityMag * math.sin(math.rad(45))
-	local maxAt45 = (vy45 * vy45) / (2 * simGravity)
+	local maxAt45 = 0
+	if simGravity ~= 0 then
+		maxAt45 = (vy45 * vy45) / (2 * simGravity)
+	end
 
 	local timeStep = 0.05
 	local maxTime = 100
@@ -225,8 +289,14 @@ local function drawArch()
 	table.insert(points, getPoint(currentPos))
 
 	local raycastParams = RaycastParams.new()
-	raycastParams.FilterDescendantsInstances = {character, archBase}
+	local excludeList = {character, archBase}
+	raycastParams.FilterDescendantsInstances = excludeList
 	raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+
+	local maxDistance = 900
+	local totalDist = 0
+	local firstWallHitPos = nil
+	local hitHumanoid = false
 
 	for t = 0, maxTime, timeStep do
 		local heightDiff = currentPos.Y - startY
@@ -235,21 +305,78 @@ local function drawArch()
 		end
 
 		local nextPos = currentPos + (currentVel * timeStep)
-		local raycastResult = workspace:Raycast(currentPos, nextPos - currentPos, raycastParams)
+		local stepDir = nextPos - currentPos
+		local stepDist = stepDir.Magnitude
 
-		if raycastResult then
-			hitBall.Position = raycastResult.Position
-			table.insert(points, getPoint(raycastResult.Position))
-			break
-		else
-			table.insert(points, getPoint(nextPos))
-			currentPos = nextPos
-			currentVel = currentVel - Vector3.new(0, simGravity * timeStep, 0) - (currentVel * airDrag * timeStep)
+		if totalDist + stepDist > maxDistance then
+			local remainingDist = maxDistance - totalDist
+			nextPos = currentPos + stepDir.Unit * remainingDist
+			stepDir = nextPos - currentPos
+			stepDist = remainingDist
 		end
+
+		local currentOrigin = currentPos
+		local currentRemainingDir = stepDir
+
+		while currentRemainingDir.Magnitude > 0.001 do
+			local raycastResult = workspace:Raycast(currentOrigin, currentRemainingDir, raycastParams)
+
+			if raycastResult then
+				local hitPart = raycastResult.Instance
+				local isHumanoid = false
+				
+				if hitPart.Parent and hitPart.Parent:FindFirstChildOfClass("Humanoid") then
+					isHumanoid = true
+				elseif hitPart.Parent and hitPart.Parent.Parent and hitPart.Parent.Parent:FindFirstChildOfClass("Humanoid") then
+					isHumanoid = true
+				end
+
+				if isHumanoid then
+					hitHumanoid = true
+					hitBall.Position = raycastResult.Position
+					table.insert(points, getPoint(raycastResult.Position))
+					break
+				else
+					if not firstWallHitPos then
+						firstWallHitPos = raycastResult.Position
+					end
+					table.insert(excludeList, hitPart)
+					raycastParams.FilterDescendantsInstances = excludeList
+				end
+			else
+				break
+			end
+		end
+
+		if hitHumanoid then
+			break
+		end
+
+		table.insert(points, getPoint(nextPos))
+		currentPos = nextPos
+		totalDist = totalDist + stepDist
+
+		if totalDist >= maxDistance then
+			break
+		end
+
+		currentVel = currentVel - Vector3.new(0, simGravity * timeStep, 0) - (currentVel * airDrag * timeStep)
 	end
 
 	connectBeams(points, archTrans)
 	heightLabel.Text = string.format("Current Peak: %.1f studs\n45° Vacuum Peak: %.1f studs", currentMaxHeight, maxAt45)
+
+	if hitHumanoid then
+		hitBall.Transparency = 0
+	else
+		if firstWallHitPos then
+			hitBall.Position = firstWallHitPos
+			hitBall.Transparency = 0
+		else
+			hitBall.Position = Vector3.new(0, -10000, 0)
+			hitBall.Transparency = 1
+		end
+	end
 end
 
 closeButton.MouseButton1Click:Connect(function()
